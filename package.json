@@ -1,0 +1,25 @@
+{
+  "name": "ac-birthdays",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "node-schedule": "^1.3.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soleilyasmina/ac-birthdays.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/soleilyasmina/ac-birthdays/issues"
+  },
+  "homepage": "https://github.com/soleilyasmina/ac-birthdays#readme"
+}
