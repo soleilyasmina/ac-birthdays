@@ -1,5 +1,6 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const OAuth = require('oauth');
 
 // acquire variables from .env, globally
 require('dotenv').config();
@@ -12,48 +13,88 @@ const {
   TWITTER_TOKEN_SECRET,
 } = process.env;
 
-// collect parameters: if media, no include_entities or status
-// include_entities: true, oauth_consumer_key, oauth_nonce,
-// oauth_signature_method: HMAC-SHA1, oauth_timestamp,
-// oauth_token, oauth_token_secret, oauth_version: 1.0,
-// status,
-// take these, create parameter string with key=value&key=value etc.
+// eslint-disable-next-line
+const encodeData = OAuth.OAuth.prototype._encodeData;
 
-const collectParameters = (isMedia, status) => {
-  const nonce = crypto.randomBytes(32).toString('base64');
-  const parameterString = `${isMedia ? '' : 'include_entities=true&'}oauth_consumer_key=${TWITTER_CONSUMER_KEY}&oauth_consumer_secret=${TWITTER_CONSUMER_SECRET}&oauth_nonce=${nonce}&oauth_signature_method=HMAC-SHA1&oauth_timestamp=${new Date().getTime()}&oauth_token=${TWITTER_TOKEN}&oauth_token_secret=${TWITTER_TOKEN_SECRET}&oauth_version=1.0${isMedia ? '' : `&status=${encodeURIComponent(status).replace('!', '%21')}`}`;
-  return parameterString;
+const callTomNook = async () => {
+  const response = await axios.get(`https://nookipedia.com/api/today/?api_key=${NOOK_API_KEY}`);
+  return response.data;
 };
 
-// signature base string:
-// method: POST
-// percent encoded URL
-// percent encoded parameter string
-// delimit these with &
-
-const createBaseString = (isMedia, parameterString) => (
-  !isMedia
-    ? `POST&=${encodeURIComponent('https://api.twitter.com/1.1/statuses/update.json')}&${encodeURIComponent(parameterString)}`
-    : `${encodeURIComponent('https://api.twitter.com/1,1/media/upload.json')}&${encodeURIComponent(parameterString)}`
-);
-
-// create signature:
-// use const hmac = crypto.createHmac('sha1', signingKey);
-// hmac.update(signatureBaseString);
-// const signature = hmac.digest('base64');
-
-const createSignature = (isMedia, status) => {
-  const signingKey = `${encodeURIComponent(TWITTER_CONSUMER_SECRET)}&${encodeURIComponent(TWITTER_TOKEN_SECRET)}`;
-  const parameterString = collectParameters(isMedia, status);
-  const base = createBaseString(isMedia, parameterString);
-  const hmac = crypto.createHmac('sha1', signingKey);
-  hmac.update(base);
-  const signature = hmac.digest('base64');
-  return signature;
+const replyWithMedia = (tweetId, oauth, villager, media) => {
+  oauth.post(
+    `https://api.twitter.com/1.1/statuses/update.json?status=${encodeData(`@villagerbdays testReply for ${villager}`)}&in_reply_to_status_id=${tweetId}&media_ids=${media.toString()}`,
+    TWITTER_TOKEN,
+    TWITTER_TOKEN_SECRET,
+    '',
+    (e) => {
+      if (e) console.error(e);
+    },
+  );
 };
 
-console.log(createSignature(false, 'Hey, friends!'));
+const getMediaIds = async (id, oauth, villagers, images) => {
+  const resp = await axios({
+    baseURL: images[0],
+    method: 'get',
+    responseType: 'arraybuffer',
+  });
+  villagers.forEach((vil) => {
+    oauth.post(
+      'https://upload.twitter.com/1.1/media/upload.json?media_category=tweet_image',
+      TWITTER_TOKEN,
+      TWITTER_TOKEN_SECRET,
+      {
+        media_data: resp.data.toString('base64'),
+      },
+      'application/octet-stream',
+      (e, data) => {
+        if (e) console.error(e);
+        const media = JSON.parse(data).media_id_string;
+        setTimeout(() => replyWithMedia(id, oauth, vil, media), 3000);
+      },
+    );
+  });
+};
 
+
+const createStatus = (oauth, status, villagers, images) => {
+  oauth.post(
+    `https://api.twitter.com/1.1/statuses/update.json?status=${encodeData(status)}`,
+    TWITTER_TOKEN,
+    TWITTER_TOKEN_SECRET,
+    '',
+    (e, data) => {
+      if (e) console.error(e);
+      const { id_str: id } = JSON.parse(data);
+      getMediaIds(id, oauth, villagers, images);
+    },
+  );
+};
+
+const createPost = async () => {
+  const oauth = new OAuth.OAuth(
+    'https://api.twitter.com/oauth/request_token',
+    'https://api.twitter.com/oauth/access_token',
+    TWITTER_CONSUMER_KEY,
+    TWITTER_CONSUMER_SECRET,
+    '1.0A',
+    'oob',
+    'HMAC-SHA1',
+  );
+
+  const { events, villager_images: images } = await callTomNook();
+
+  const birthdays = events.filter((evt) => (
+    evt.split(' ').includes('birthday!')
+  ));
+
+  const villagers = birthdays[0].split(' ').filter((vil) => !['Today', 'is', 'and', 'birthday!'].includes(vil)).map((vil) => vil.replace('\'s', ''));
+
+  createStatus(oauth, birthdays, villagers, images);
+};
+
+createPost('test3');
 // make Nookipedia API Call
 // assign villager_images to villagerImages
 // parse events for birthday
