@@ -21,9 +21,11 @@ const callTomNook = async () => {
   return response.data;
 };
 
-const replyWithMedia = (tweetId, oauth, villager, media) => {
+const replyWithMedia = async (tweetId, oauth, villager, media) => {
+  const villagerFullInfo = await axios.get(`https://nookipedia.com/api/villager/${villager}/?api_key=${NOOK_API_KEY}`);
+  const { favclothing, favcolor, gender, personality, species } = villagerFullInfo.data;
   oauth.post(
-    `https://api.twitter.com/1.1/statuses/update.json?status=${encodeData(`@villagerbdays testReply for ${villager}`)}&in_reply_to_status_id=${tweetId}&media_ids=${media.toString()}`,
+    `https://api.twitter.com/1.1/statuses/update.json?status=${encodeData(`@villagerbdays This is ${villager}! ${gender === 'Female' ? 'She' : 'He'} likes the color ${favcolor.toLowerCase()}, ${favclothing.toLowerCase()} clothing, and is a ${personality.toLowerCase()} ${species.toLowerCase()}.`)}&in_reply_to_status_id=${tweetId}&media_ids=${media.toString()}`,
     TWITTER_TOKEN,
     TWITTER_TOKEN_SECRET,
     '',
