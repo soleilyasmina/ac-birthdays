@@ -21,11 +21,31 @@ const callTomNook = async () => {
   return response.data;
 };
 
+const createDetails = (villagerData, name) => {
+  const {
+    favclothing, favcolor, gender, personality, species,
+  } = villagerData;
+  const firstP = gender === 'Female' ? 'She' : 'He';
+  const secondP = gender === 'Female' ? 'Her' : 'His';
+  let status = `This is ${name}! `;
+  if (favcolor && favcolor !== 'Unknown') {
+    status += `${secondP} favorite color is ${favcolor.toLowerCase()}. `;
+  }
+  if (favclothing && favcolor !== 'Unknown') {
+    status += `${firstP} likes ${favclothing.toLowerCase()} clothing. `;
+  }
+  if (personality && personality !== 'Unknown') {
+    status += `${firstP} is a ${personality.toLowerCase()} ${species.toLowerCase()}.`;
+  } else {
+    status += `${firstP} is a ${species.toLowerCase()}.`;
+  }
+  return status;
+};
+
 const replyWithMedia = async (tweetId, oauth, villager, media) => {
   const villagerFullInfo = await axios.get(`https://nookipedia.com/api/villager/${villager}/?api_key=${NOOK_API_KEY}`);
-  const { favclothing, favcolor, gender, personality, species } = villagerFullInfo.data;
   oauth.post(
-    `https://api.twitter.com/1.1/statuses/update.json?status=${encodeData(`@villagerbdays This is ${villager}! ${gender === 'Female' ? 'She' : 'He'} likes the color ${favcolor.toLowerCase()}, ${favclothing.toLowerCase()} clothing, and is a ${personality.toLowerCase()} ${species.toLowerCase()}.`)}&in_reply_to_status_id=${tweetId}&media_ids=${media.toString()}`,
+    `https://api.twitter.com/1.1/statuses/update.json?status=${encodeData(createDetails(villagerFullInfo.data, villager))}&in_reply_to_status_id=${tweetId}&media_ids=${media.toString()}`,
     TWITTER_TOKEN,
     TWITTER_TOKEN_SECRET,
     '',
@@ -36,12 +56,12 @@ const replyWithMedia = async (tweetId, oauth, villager, media) => {
 };
 
 const getMediaIds = async (id, oauth, villagers, images) => {
-  const resp = await axios({
-    baseURL: images[0],
-    method: 'get',
-    responseType: 'arraybuffer',
-  });
-  villagers.forEach((vil) => {
+  villagers.forEach(async (vil, i) => {
+    const resp = await axios({
+      baseURL: images[i],
+      method: 'get',
+      responseType: 'arraybuffer',
+    });
     oauth.post(
       'https://upload.twitter.com/1.1/media/upload.json?media_category=tweet_image',
       TWITTER_TOKEN,
