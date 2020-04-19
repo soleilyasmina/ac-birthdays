@@ -2,7 +2,7 @@ const express = require('express');
 const logger = require('morgan');
 const cors = require('cors');
 
-const { createPost } = require('./index');
+const createPost = require('./index');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
