@@ -116,7 +116,7 @@ const createPost = async () => {
   createStatus(oauth, birthdays, villagers, images);
 };
 
-createPost('test3');
+module.exports = createPost;
 // make Nookipedia API Call
 // assign villager_images to villagerImages
 // parse events for birthday
