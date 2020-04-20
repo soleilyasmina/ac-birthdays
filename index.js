@@ -1,5 +1,4 @@
 const axios = require('axios');
-const crypto = require('crypto');
 const OAuth = require('oauth');
 
 // acquire variables from .env, globally
