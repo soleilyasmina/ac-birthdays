@@ -42,7 +42,7 @@ const createDetails = (villagerData, name) => {
 };
 
 const replyWithMedia = async (tweetId, oauth, villager, media) => {
-  const villagerFullInfo = await axios.get(`https://nookipedia.com/api/villager/${villager}/?api_key=${NOOK_API_KEY}`);
+  const villagerFullInfo = await axios.get(`https://nookipedia.com/api/villager/${villager.replace(/\s/g, '_')}/?api_key=${NOOK_API_KEY}`);
   oauth.post(
     `https://api.twitter.com/1.1/statuses/update.json?status=${encodeData(createDetails(villagerFullInfo.data, villager))}&in_reply_to_status_id=${tweetId}&media_ids=${media.toString()}`,
     TWITTER_TOKEN,
@@ -110,7 +110,22 @@ const createPost = async () => {
     evt.split(' ').includes('birthday!')
   ));
 
-  const villagers = birthdays[0].split(' ').filter((vil) => !['Today', 'is', 'and', 'birthday!'].includes(vil)).map((vil) => vil.replace('\'s', ''));
+  const isMore = birthdays[0].split(' ').includes('and');
+
+  let villagers;
+  if (isMore) {
+    villagers = birthdays[0]
+      .split(' ')
+      .filter((vil) => !['Today', 'is', 'birthday!'].includes(vil))
+      .join(' ')
+      .split(' and ')
+      .map((vil) => vil.replace('\'s', ''));
+  } else {
+    villagers = birthdays[0]
+      .split(' ')
+      .filter((vil) => !['Today', 'is', 'birthday!'].includes(vil))
+      .map((vil) => vil.replace('\'s', ''));
+  }
 
   createStatus(oauth, birthdays, villagers, images);
 };
